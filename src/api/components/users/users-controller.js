@@ -119,10 +119,10 @@ async function updateUser(request, response, next) {
 
 /**
  * Handle change password request
- * @param {object} request - Express request object
- * @param {object} response - Express response object
- * @param {object} next - Express route middlewares
- * @returns {object} Response object or pass an error to the next route
+ * @param {object} request
+ * @param {object} response
+ * @param {object} next
+ * @returns {object}
  */
 async function changePassword(request, response, next) {
   try {
@@ -131,10 +131,8 @@ async function changePassword(request, response, next) {
     const newPassword = request.body.newPassword;
     const newPasswordConfirm = request.body.newPasswordConfirm;
 
-    // Call changePassword function from usersService
     const success = await usersService.changePassword(id, oldPassword, newPassword, newPasswordConfirm);
 
-    // If the password change is successful, send success response
     if (success) {
       return response.status(200).json({ message: 'Password changed successfully.' });
     } else {
@@ -144,7 +142,6 @@ async function changePassword(request, response, next) {
         'Failed to change password');
     }
   } catch (error) {
-    // Pass any errors to the next middleware
     return next(error);
   }
 }

@@ -105,21 +105,17 @@ async function changePassword(id, oldPassword, newPassword, confirmPassword) {
       return null; 
     }
 
-    // Check if the old password matches the password stored in the database
     const passwordMatch = await bcrypt.compare(oldPassword, user.password);
     if (!passwordMatch) {
       throw errorResponder(errorTypes.INVALID_PASSWORD, 'Password saat ini dan Old Password tidak sama');
     }
 
-    // Check if the new password and confirm password match
     if (newPassword !== confirmPassword) {
       throw errorResponder(errorTypes.INVALID_PASSWORD, 'Konfirmasi password baru salah');
     }
 
-    // Hash the new password
     const hashedNewPassword = await hashPassword(newPassword);
 
-    // Update user's password in the database
     user.password = hashedNewPassword;
     await user.save();
 
