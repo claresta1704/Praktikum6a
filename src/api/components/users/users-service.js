@@ -1,5 +1,8 @@
+const bcrypt = require ('bcrypt');
 const usersRepository = require('./users-repository');
 const { hashPassword } = require('../../../utils/password');
+const { errorResponder } = require('../../../core/errors');
+const { errorTypes } = require('../../../core/errors');
 
 /**
  * Get list of users
@@ -46,14 +49,15 @@ async function getUser(id) {
  * @param {string} name - Name
  * @param {string} email - Email
  * @param {string} password - Password
+ * @param {string} passwordConfirm - Password confirmation
  * @returns {boolean}
  */
-async function createUser(name, email, password) {
+async function createUser(name, email, password, passwordConfirm) {
   // Hash password
   const hashedPassword = await hashPassword(password);
 
   try {
-    await usersRepository.createUser(name, email, hashedPassword);
+    await usersRepository.createUser(name, email, hashedPassword, passwordConfirm);
   } catch (err) {
     return null;
   }
@@ -86,6 +90,49 @@ async function updateUser(id, name, email) {
 }
 
 /**
+ * Change Password
+ * @param {string} id - ID
+ * @param {string} oldPassword - Old password
+ * @param {string} newPassword - New password
+ * @param {string} confirmPassword - Confirm new password
+ * @return {object}
+ */
+
+async function changePassword(id, oldPassword, newPassword, confirmPassword) {
+  try {
+    const user = await usersRepository.getUser(id);
+    if (!user) {
+      return null; 
+    }
+
+    // Check if the old password matches the password stored in the database
+    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!passwordMatch) {
+      throw errorResponder(errorTypes.INVALID_PASSWORD, 'Password saat ini dan Old Password tidak sama');
+    }
+
+    // Check if the new password and confirm password match
+    if (newPassword !== confirmPassword) {
+      throw errorResponder(errorTypes.INVALID_PASSWORD, 'Konfirmasi password baru salah');
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await hashPassword(newPassword);
+
+    // Update user's password in the database
+    user.password = hashedNewPassword;
+    await user.save();
+
+    return {
+      email: user.email,
+      id: user.id,
+    };
+  } catch (error) {
+    throw error; 
+  }
+}
+
+/**
  * Delete user
  * @param {string} id - User ID
  * @returns {boolean}
@@ -107,10 +154,22 @@ async function deleteUser(id) {
   return true;
 }
 
+async function isEmailRegistered(email) {
+  const users = await usersRepository.getUsers();
+  for (let i = 0; i < users.length; i++) {
+    if (users[i].email === email) {
+      return true;
+    }
+  }
+  return false;
+}
+
 module.exports = {
   getUsers,
   getUser,
   createUser,
   updateUser,
   deleteUser,
+  isEmailRegistered,
+  changePassword,
 };

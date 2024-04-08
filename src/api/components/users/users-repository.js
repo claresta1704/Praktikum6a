@@ -53,6 +53,25 @@ async function updateUser(id, name, email) {
   );
 }
 
+/** Change password
+ * @param {string} id - ID
+ * @param {string} newPassword - New password
+ * @return {Promise}
+ */
+async function changePassword(id,newPassword){
+  try {
+    const user = await User.findByIdAndUpdate(id, { password: newPassword });
+
+    if (user) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
 /**
  * Delete a user
  * @param {string} id - User ID
@@ -68,4 +87,5 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  changePassword,
 };

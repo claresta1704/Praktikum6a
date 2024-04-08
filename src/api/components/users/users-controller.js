@@ -50,8 +50,25 @@ async function createUser(request, response, next) {
     const name = request.body.name;
     const email = request.body.email;
     const password = request.body.password;
+    const passwordConfirm = request.body.passwordConfirm;
 
-    const success = await usersService.createUser(name, email, password);
+    // Validasi passwordConfirm
+    if (password !== passwordConfirm) {
+      throw errorResponder(
+        errorTypes.INVALID_PASSWORD,
+        'Password confirmation does not match'
+      );
+    }
+
+    const emailRegistered = await usersService.isEmailRegistered(email);
+    if (emailRegistered) {
+      throw errorResponder(
+        errorTypes.EMAIL_ALREADY_TAKEN,
+        'Email sudah ada'
+      );
+    }
+
+    const success = await usersService.createUser(name, email, password, passwordConfirm);
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
@@ -78,6 +95,14 @@ async function updateUser(request, response, next) {
     const name = request.body.name;
     const email = request.body.email;
 
+    const emailRegistered = await usersService.isEmailRegistered(email);
+    if (emailRegistered) {
+      throw errorResponder(
+        errorTypes.EMAIL_ALREADY_TAKEN,
+        'Email sudah ada'
+      );
+    }
+
     const success = await usersService.updateUser(id, name, email);
     if (!success) {
       throw errorResponder(
@@ -88,6 +113,38 @@ async function updateUser(request, response, next) {
 
     return response.status(200).json({ id });
   } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * Handle change password request
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function changePassword(request, response, next) {
+  try {
+    const id = request.params.id;
+    const oldPassword = request.body.oldPassword;
+    const newPassword = request.body.newPassword;
+    const newPasswordConfirm = request.body.newPasswordConfirm;
+
+    // Call changePassword function from usersService
+    const success = await usersService.changePassword(id, oldPassword, newPassword, newPasswordConfirm);
+
+    // If the password change is successful, send success response
+    if (success) {
+      return response.status(200).json({ message: 'Password changed successfully.' });
+    } else {
+      // If the password change is unsuccessful (old password incorrect, user not found, etc.), send appropriate error response
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Failed to change password');
+    }
+  } catch (error) {
+    // Pass any errors to the next middleware
     return next(error);
   }
 }
@@ -123,4 +180,5 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  changePassword,
 };
